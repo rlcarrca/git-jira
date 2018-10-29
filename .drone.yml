@@ -1,6 +1,6 @@
 workspace:
   base: /go
-  path: src/rutgers
+  path: src/git-jira
 
 pipeline:
   core:
