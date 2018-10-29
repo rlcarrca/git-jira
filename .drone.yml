@@ -1,0 +1,27 @@
+workspace:
+  base: /go
+  path: src/rutgers
+
+pipeline:
+  core:
+    image: golang:1.11-alpine
+    environment:
+      - GOPATH=/go
+    commands:
+      - go version
+      - go mod download
+      - go test -v
+      - go build
+    when:
+      event: [push, pull_request, tag, deployment]
+  release:
+    image: library/docker:dind
+    secrets: [docker_username, docker_password, github_token]
+    environment:
+      - GOPATH=/go
+    commands:
+      - docker run --rm --privileged -v $PWD:/go/src/github.com/tevjef/git-jira -w /go/src/github.com/user/repo -e $GITHUB_TOKEN -e $DOCKER_USERNAME -e $DOCKER_PASSWORD goreleaser/goreleaser release
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    when:
+      event: [tag]
