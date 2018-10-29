@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"gopkg.in/andygrunwald/go-jira.v1"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+	"gopkg.in/andygrunwald/go-jira.v1"
 )
 
 func main() {
@@ -83,7 +84,7 @@ func dostuff(context *cli.Context) error {
 	issue, _, err := client.Issue.Get(issueID, &jira.GetQueryOptions{Fields: "summary"})
 
 	var issueType = getIssueType(issue.Fields.Type)
-	var branchName = createBranchName(trimRules(issue.Fields.Summary))
+	var branchName = createBranchName(issue.Fields.Summary)
 
 	var gitBranchName = fmt.Sprintf("%s/%s_%s", issueType, issueID, branchName)
 
@@ -92,7 +93,6 @@ func dostuff(context *cli.Context) error {
 	var commitHeader = fmt.Sprintf("[%s] %s", issueID, issue.Fields.Summary)
 
 	gitCommit(commitHeader, "\t", issue.Self)
-
 
 	// TODO transition ticket to in-progress
 	return nil
@@ -111,15 +111,27 @@ func getIssueType(issue jira.IssueType) string {
 	return "feature"
 }
 
-func gitCheckout(branchName string) {
-	cmd := exec.Command("git", "checkout", "-b",  branchName)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+var execCommand = exec.Command
+
+func generateGitCheckout(branch string) []string {
+	args := []string{
+		"git",
+		"checkout",
+		"-b",
+		branch,
+	}
+
+	return args
 }
 
-func gitCommit(message ...string) {
+func gitCheckout(branchName string) {
+	var command = generateGitCheckout(branchName)
+	executeCommand(command)
+}
+
+func generateGitCommit(message ...string) []string {
 	args := []string{
+		"git",
 		"commit",
 		"--allow-empty",
 	}
@@ -129,54 +141,47 @@ func gitCommit(message ...string) {
 		args = append(args, m)
 	}
 
-	cmd := exec.Command("git", args...)
+	return args
+}
+
+func gitCommit(message ...string) {
+	var command = generateGitCommit(message...)
+	executeCommand(command)
+}
+
+func executeCommand(command []string) *exec.Cmd {
+	cmd := execCommand(command[0], command[1:]...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
-	cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		log.WithError(err).Fatal("failure while executing command")
+	}
+	return cmd
 }
 
 func trimRules(input string) string {
-	var output = input
+	var output = strings.ToLower(input)
 
-	output = strings.Replace(strings.ToLower(output), "android", "", -1)
-	output = strings.Replace(strings.ToLower(output), "ios", "", -1)
+	output = strings.Replace(output, "android", "", -1)
+	output = strings.Replace(output, "ios", "", -1)
 
-	return output
+	return strings.TrimSpace(output)
 }
 
-// Android | Founders' debit home
 func createBranchName(issueTitle string) string {
-	replacementString := issueTitleRegex.ReplaceAllString(issueTitle, "_")
+	output := trimRules(issueTitle)
+	output = issueTitleRegex.ReplaceAllString(output, "_")
 
 	var lastRune rune
-	replacementString = strings.Map(func(r rune) rune {
-		if lastRune == r {
+	output = strings.Map(func(r rune) rune {
+		if lastRune == r && lastRune == '_' {
 			return -1
 		}
 
 		lastRune = r
-
 		return r
-	}, replacementString)
+	}, output)
 
-	return strings.Trim(replacementString, "_")
+	return strings.Trim(output, "_")
 }
-
-/*
-
-
-at my last gig I wrote something similar for PivotalTracker (jira lite). I also wrote a git extension that:
-
-`git pivotal #tickedId`
-
-• creates branch with correct name (bug/ * feature/ *) X
-• create appropriate branch name from ticket name X
-• creates a commit with the body and URL of the ticket. ? // git commit -m "My head line" -m "My content line."
-• marks the ticket as in progress. (edited)
-Because my laziness knows no bounds
-
-
-
-
-
-*/
