@@ -9,14 +9,12 @@ clone:
 
 pipeline:
   core:
-    image: golang:1.11-alpine
+    image: golang:1.11
     environment:
       - GOPATH=/go
       - GO111MODULE=on
       - CGO_ENABLED=0
     commands:
-      - apk update
-      - apk add ca-certificates git curl
       - go version
       - go mod download
       - go test -v

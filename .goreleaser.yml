@@ -2,15 +2,33 @@ before:
   hooks:
     - go mod download
 builds:
-- env:
-  - CGO_ENABLED=0
+  -
+    env:
+    - CGO_ENABLED=0
+    goos:
+    - linux
+    - windows
+    - darwin
+    goarch:
+    - 386
+    - amd64
+    - arm
+    - arm64
+    goarm:
+    - 6
+    - 7
+    ldflags:
+    - -s -w
 archive:
+  format_overrides:
+  - goos: windows
+    format: zip
+  files:
+  - none*
   replacements:
-    darwin: darwin
-    linux: linux
-    windows: windows
-    386: i386
-    amd64: x86_64
+    darwin: macos
+    386: 32-bit
+    amd64: 64-bit
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -21,3 +39,16 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+brew:
+  name: git-jira
+  github:
+    owner: tevjef
+    name: homebrew-tap
+  skip_upload: false
+  commit_author:
+    name: tevjef
+    email: tev.jeffrey@gmail.com
+  folder: Formula
+  homepage: "https://github.com/tevjef/git-jira"
+  dependencies:
+  - git
