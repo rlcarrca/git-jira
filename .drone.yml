@@ -2,26 +2,37 @@ workspace:
   base: /go
   path: src/git-jira
 
+clone:
+  git:
+    image: plugins/git
+    tags: true
+
 pipeline:
   core:
     image: golang:1.11-alpine
     environment:
       - GOPATH=/go
+      - GO111MODULE=on
+      - CGO_ENABLED=0
     commands:
+      - apk update
+      - apk add ca-certificates git curl
       - go version
       - go mod download
       - go test -v
       - go build
+      - ls -lA
+      - rm git-jira
     when:
-      event: [push, pull_request, tag, deployment]
+      event: [push, pull_request]
   release:
-    image: library/docker:dind
-    secrets: [docker_username, docker_password, github_token]
+    image: golang:1.11
+    secrets: [github_token]
     environment:
       - GOPATH=/go
+      - GO111MODULE=on
+      - CGO_ENABLED=0
     commands:
-      - docker run --rm --privileged -v $PWD:/go/src/github.com/tevjef/git-jira -w /go/src/github.com/user/repo -e $GITHUB_TOKEN -e $DOCKER_USERNAME -e $DOCKER_PASSWORD goreleaser/goreleaser release
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - curl -sL https://git.io/goreleaser | bash -s release
     when:
       event: [tag]
