@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -18,9 +16,22 @@ func Test_createBranchName(t *testing.T) {
 		args args
 		want string
 	}{
-		{name: "", args: args{"Android | Home Screen"}, want: "home_screen"},
-		{name: "", args: args{"Android | Home || Screen"}, want: "home_screen"},
-		{name: "", args: args{"| Android | Home Screen"}, want: "home_screen"},
+		{
+			name: "trims special strings from title",
+			args: args{"Android | Home Screen"},
+			want: "home_screen"},
+		{
+			name: "trims illegal characters in the middle",
+			args: args{"Android | Home || Screen"},
+			want: "home_screen"},
+		{
+			name: "trims illegal characters from start",
+			args: args{"| Android | Home Screen"},
+			want: "home_screen"},
+		{
+			name: "branch length is limit",
+			args: args{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+			want: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -40,9 +51,18 @@ func Test_trimRules(t *testing.T) {
 		args args
 		want string
 	}{
-		{name: "removes android from string", args: args{"Home Screen | android |"}, want: "home screen |  |"},
-		{name: "removes ios from string", args: args{"Home Screen | ios |"}, want: "home screen |  |"},
-		{name: "trims spaces in string", args: args{"  "}, want: ""},
+		{
+			name: "removes android from string",
+			args: args{"Home Screen | android |"},
+			want: "home screen |  |"},
+		{
+			name: "removes ios from string",
+			args: args{"Home Screen | ios |"},
+			want: "home screen |  |"},
+		{
+			name: "trims spaces in string",
+			args: args{"  "},
+			want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -51,14 +71,6 @@ func Test_trimRules(t *testing.T) {
 			}
 		})
 	}
-}
-
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	return cmd
 }
 
 func Test_generateGitCommit(t *testing.T) {
@@ -70,8 +82,14 @@ func Test_generateGitCommit(t *testing.T) {
 		args args
 		want []string
 	}{
-		{name: "single line commit message", args: args{[]string{"aaa"}}, want: []string{"git", "commit", "--allow-empty", "-m", "aaa"}},
-		{name: "multiline commit message", args: args{[]string{"aaa", "bbb", "ccc"}}, want: []string{"git", "commit", "--allow-empty", "-m", "aaa", "-m", "bbb", "-m", "ccc"}},
+		{
+			name: "single line commit message",
+			args: args{[]string{"aaa"}},
+			want: []string{"git", "commit", "--allow-empty", "-m", "aaa"}},
+		{
+			name: "multiline commit message",
+			args: args{[]string{"aaa", "bbb", "ccc"}},
+			want: []string{"git", "commit", "--allow-empty", "-m", "aaa", "-m", "bbb", "-m", "ccc"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -91,7 +109,10 @@ func Test_generateGitCheckout(t *testing.T) {
 		args args
 		want []string
 	}{
-		{name: "", args: args{"aaa"}, want: []string{"git", "checkout", "-b", "aaa"}},
+		{
+			name: "",
+			args: args{"aaa"},
+			want: []string{"git", "checkout", "-b", "aaa"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,9 +132,18 @@ func Test_getIssueType(t *testing.T) {
 		args args
 		want string
 	}{
-		{name: "Story issue maps to feature", args: args{jira.IssueType{Name: "Story"}}, want: "feature"},
-		{name: "Bug issue maps to bug", args: args{jira.IssueType{Name: "Bug"}}, want: "bug"},
-		{name: "Any issue maps to feature", args: args{jira.IssueType{Name: "Anything"}}, want: "feature"},
+		{
+			name: "Story issue maps to feature",
+			args: args{jira.IssueType{Name: "Story"}},
+			want: "feature"},
+		{
+			name: "Bug issue maps to bug",
+			args: args{jira.IssueType{Name: "Bug"}},
+			want: "bug"},
+		{
+			name: "Any issue maps to feature",
+			args: args{jira.IssueType{Name: "Anything"}},
+			want: "feature"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
