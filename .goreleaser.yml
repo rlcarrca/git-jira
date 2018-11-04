@@ -18,7 +18,7 @@ builds:
     - 6
     - 7
     ldflags:
-    - -s -w
+    - -s -w -X main.Version={{.Tag}} -X main.Commit={{.Commit}}
 archive:
   format_overrides:
   - goos: windows
@@ -27,8 +27,7 @@ archive:
   - none*
   replacements:
     darwin: macos
-    386: 32-bit
-    amd64: 64-bit
+    386: i386
 checksum:
   name_template: 'checksums.txt'
 snapshot:
