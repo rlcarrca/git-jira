@@ -7,7 +7,7 @@
 
 1. Creates a branch from a Jira issue title
 2. Creates an empty commit with the link to the Jira issue.
-3. Set the Jira issue to "In-Progress"
+3. Sets the Jira issue to "In-Progress"
 
 ## Usage
 
